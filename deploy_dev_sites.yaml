@@ -1,0 +1,5 @@
+---
+- hosts: dev-www01, dev-dbs01
+  become: True
+  roles:
+  - websites_mgmt

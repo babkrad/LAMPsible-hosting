@@ -1,0 +1,30 @@
+- name: Dump and remove MariaDB database,user from server
+  block:
+  - name: dump database before deleting
+    when: item.db == True and site_user is not search('placeholder')
+    with_items: "{{ sites_disabled }}"
+    ignore_errors: True
+    community.mysql.mysql_db:
+      login_unix_socket: /var/lib/mysql/mysql.sock
+      state: dump
+      name: "{{ site_user }}"
+      target: "/root/{{ site_user }}.sql.gz"
+      pipefail: true
+
+  - name: cleanup website database
+    when: item.db == True and site_user is not search('placeholder')
+    with_items: "{{ sites_disabled }}"
+    community.mysql.mysql_db:
+      login_unix_socket: /var/lib/mysql/mysql.sock
+      name: "{{ site_user }}"
+      state: absent
+
+  - name: Remove database user with password and all database privileges
+    register: mysql_account_removed
+    when: item.db == True and site_user is not search('placeholder')
+    with_items: "{{ sites_disabled }}"
+    community.mysql.mysql_user:
+      login_unix_socket: /var/lib/mysql/mysql.sock
+      name: "{{ site_user }}"
+      host: "%"
+      state: absent

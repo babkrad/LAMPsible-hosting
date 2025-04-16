@@ -1,0 +1,24 @@
+---
+db_host_addr: 192.168.1.100
+apache_host_addr: 192.168.2.100
+site_user: "{{ item.name | regex_replace('[-]', '_') | regex_replace('(^.*)\\.([^.]{1,2})\\.([^.]+)$', '\\1_dv') | regex_replace('\\.[^.]+$', '_dv') | regex_replace('\\.', '_') }}"
+sites_enabled:
+  - name: example.dev.com
+    multisite_alias:
+    enable_www_prefix: False
+    php: 81
+    db: True
+    ssl_cert: SelfSigned
+    acl_status: False
+    fpm_resources: Ultra
+    maintainer: other
+sites_disabled:  ## THE PLACE TO CLEANUP SERVER FROM ALL CONFIGS AND FILES FROM SITES THAT ARE DISABLED
+  - name: placeholder.dev.com ## Replace it with first domain it will need to be archived and removed
+    multisite_alias:
+    enable_www_prefix: False
+    php: 81
+    db: True
+    wp_whitelist:
+    acl_status: False
+    fpm_resources: LowDemand
+    maintainer: other

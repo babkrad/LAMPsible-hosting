@@ -1,0 +1,9 @@
+---
+- hosts: dev-www01
+  become: True
+
+  tasks:
+    - name: Patch PHP-FPM configs only
+      include_role:
+        name: websites_mgmt
+        tasks_from: chrooted_fpm

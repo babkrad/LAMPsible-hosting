@@ -1,0 +1,35 @@
+---
+- name: block for preparation of up to date acl whitelist
+  delegate_to: localhost
+  block:
+  - name: Download the list of IP addresses from URL
+    ignore_errors: true
+    ansible.builtin.uri:
+      url: "{{ access_list_url }}"
+      return_content: yes
+    register: ip_list_raw
+
+  - name: Split the IP list into a list of IPs
+    ignore_errors: true
+    set_fact:
+      ip_list: "{{ ip_list_raw.content.splitlines() }}"
+
+  - name: Format IP addresses into a comma-separated line
+    ignore_errors: true
+    set_fact:
+      access_list: "{{ ip_list | join(' ') }}"
+
+- name: "Find all VirtualHost configuration files"
+  ansible.builtin.find:
+    paths: "/etc/httpd/sites-available"
+    patterns: "*.conf"
+    recurse: yes
+  register: existing_vhosts_files
+
+- name: Redeploy VirtualHost configurations for existing files only
+  template:
+    src: 'templates/vhosts.conf.j2'
+    dest: '/etc/httpd/sites-available/{{ item.name }}.conf'
+  loop: "{{ sites_enabled }}"
+  when: "'/etc/httpd/sites-available/{{ item.name }}.conf' in existing_vhosts_files.files | map(attribute='path') | list"
+  notify: "reload httpd service"

@@ -1,0 +1,87 @@
+---
+- name: Remove SFTP user
+  when: site_user is not search('placeholder')
+  with_items:
+    - "{{ sites_disabled }}"
+  ansible.builtin.user:
+    name: "{{ site_user }}"
+    state: absent
+
+- name: remove vHosts symlinks
+  when: site_user is not search('placeholder')
+  with_items:
+    - "{{ sites_disabled }}"
+  ansible.builtin.file:
+      path: "/etc/httpd/sites-disabled/{{ item.name }}.conf"
+      state: absent
+
+- name: remove VirtualHosts
+  when: site_user is not search('placeholder')
+  notify: "reload httpd service"
+  with_items:
+    - "{{ sites_disabled }}"
+  ansible.builtin.file:
+    path: '/etc/httpd/sites-available/{{ item.name }}.conf'
+    state: absent
+
+- name: remove fpm pool for website
+  when: site_user is not search('placeholder')
+  with_items:
+    - "{{ sites_disabled }}"
+  ansible.builtin.file:
+    path: '/etc/opt/remi/php{{ item.php }}/php-fpm.d/{{ item.name }}.conf'
+    state: absent
+
+- name: remove php-fpm log directory
+  when: site_user is not search('placeholder')
+  notify: "reload PHP{{ item.php }} service"
+  with_items:
+    - "{{ sites_disabled }}"
+  ansible.builtin.file:
+    path: "/var/log/php-fpm/{{ item.name }}"
+    state: absent
+
+- name: remove website certificate if SelfSigned
+  when: "item.ssl_cert is defined and item.ssl_cert == 'SelfSigned' and site_user is not search('placeholder')"
+  with_items:
+    - "{{ sites_disabled }}"
+  ansible.builtin.file:
+    path: "/etc/httpd/certs/{{ item.name }}"
+    state: absent
+
+- name: Archive and remove website files
+  block:
+    - name: PRE check if archive file for website exists
+      when: site_user is not search('placeholder')
+      with_items:
+        - "{{ sites_disabled }}"
+      register: archive_exists
+      stat:
+        path: "/var/www/html/{{ item.name }}-20*.tar.gz"
+
+    - name: Archive website files
+      when: "item.stat is defined and item.stat.exists == false and item.item.name is not search('placeholder')"
+      loop: "{{ archive_exists.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      community.general.archive:
+        path: "/var/www/html/{{ item.item.name }}"
+        dest: "/var/www/html/{{ item.item.name }}-{{ now(utc=true,fmt='%Y-%m-%d') }}.tar.gz"
+
+    - name:  POST check if archive file for website exists
+      with_items:
+        - "{{ sites_disabled }}"
+      register: archive_creation
+      stat:
+        path: "/var/www/html/{{ item.name }}-20*.tar.gz"
+
+    - name: remove website directory and set permissions only if archive exists
+      when: "item.stat is defined and item.stat.exists == true and item.item.name is not search('placeholder')"
+      loop: "{{ archive_creation.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      ansible.builtin.file:
+        path: "/var/www/html/{{ item.item.name }}"
+        owner: root
+        group: root
+        state: absent

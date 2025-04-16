@@ -1,0 +1,10 @@
+---
+- hosts: all
+  become: True
+  gather_facts: true
+
+  tasks:
+  - name: Deploy maintainers accounts via ssh and limited sudo
+    include_role:
+      name: websites_mgmt
+      tasks_from: maintainers

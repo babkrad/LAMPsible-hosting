@@ -1,0 +1,41 @@
+---
+- name: prepare user password keypair
+  block:
+  - name: Initialize user-password mapping
+    set_fact:
+      user_password_map: {}
+
+  - name: Pair user with password using mapping method
+    loop: "{{ sites_enabled }}"
+    loop_control:
+      label: "{{ site_user }}"
+    set_fact:
+      user_password_map: >-
+        {{
+          user_password_map | combine({ site_user: new_user_password })
+        }}
+
+- name: Create MySQL DB and user with password
+  block:
+  - name: make new website database for
+    when: "item.db == True"
+    with_items: "{{ sites_enabled }}"
+    ignore_errors: true
+    community.mysql.mysql_db:
+      login_unix_socket: /var/lib/mysql/mysql.sock
+      name: "{{ site_user }}"
+      state: present
+      encoding: utf8
+
+  - name: Create database user with password and all database privileges
+    register: mysql_account_created
+    when: "item.db == True"
+    with_items: "{{ sites_enabled }}"
+    community.mysql.mysql_user:
+      login_unix_socket: /var/lib/mysql/mysql.sock
+      name: "{{ site_user }}"
+      host: "%"
+      password: "{{ user_password_map[ site_user ] }}"
+      update_password: on_create
+      priv: "`{{ site_user }}`.*:ALL"
+      state: present

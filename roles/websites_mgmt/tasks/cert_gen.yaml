@@ -1,0 +1,97 @@
+- name: Check if Cert already exists and create directory in httpd configs
+  block:
+    - name: check if certificate already exists
+      with_items:
+        - "{{ sites_enabled }}"
+      register: cert_existence
+      when: "item.ssl_cert == 'SelfSigned'"
+      stat:
+        path: "/etc/httpd/certs/{{ item.name }}/*{{ item.name }}.crt"
+
+    - name: create certs directory
+      when: "item.ssl_cert == 'SelfSigned'"
+      ansible.builtin.file:
+        path: /etc/httpd/certs/{{ item.name }}
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+      loop: "{{ sites_enabled }}"
+
+- name: Generate SelfSigned Certificate for ACL secured websites
+  block:
+    - name: Cert for custom domain
+      block:
+        - name: (www) Generate a self-signed private key
+          when: "item.item.enable_www_prefix == true and item.stat is defined and item.stat.exists == false"
+          community.crypto.openssl_privatekey:
+            path: "/etc/httpd/certs/{{ item.item.name }}/www.{{ item.item.name }}.key"
+            size: 4096
+            mode: 0600
+            type: RSA
+            state: present
+          loop: "{{ cert_existence.results }}"
+          loop_control:
+            label: "{{ item.item.name }}"
+
+        - name: (www) Create certificate signing request (CSR) for self-signed certificate
+          when: "item.item.enable_www_prefix == true and item.stat is defined and item.stat.exists == false"
+          community.crypto.openssl_csr_pipe:
+            privatekey_path: "/etc/httpd/certs/{{ item.item.name }}/www.{{ item.item.name }}.key"
+            common_name: "www.{{ item.item.name }}"
+            organization_name: "Example Issuer"
+            state_or_province_name: "PL"
+          register: csr
+          loop: "{{ cert_existence.results }}"
+          loop_control:
+            label: "{{ item.item.name }}"
+
+        - name: (www) Generate a self-signed SSL/TLS certificate (valid for 10 years)
+          when: "item.item.item.enable_www_prefix == true and item.csr is defined"
+          community.crypto.x509_certificate:
+            path: "/etc/httpd/certs/{{ item.item.item.name }}/www.{{ item.item.item.name }}.crt"
+            privatekey_path: "/etc/httpd/certs/{{ item.item.item.name }}/www.{{ item.item.item.name }}.key"
+            csr_content: "{{ item.csr }}"
+            provider: selfsigned
+            selfsigned_not_after: "+3650d"
+            mode: 0644
+          loop: "{{ csr.results }}"
+          loop_control:
+            label: "{{ item.item.item.name }}"
+
+        - name: Generate a self-signed private key
+          when: "item.item.enable_www_prefix == false and item.stat is defined and item.stat.exists == false"
+          community.crypto.openssl_privatekey:
+            path: "/etc/httpd/certs/{{ item.item.name }}/{{ item.item.name }}.key"
+            size: 4096
+            mode: 0600
+            type: RSA
+            state: present
+          loop: "{{ cert_existence.results }}"
+          loop_control:
+            label: "{{ item.item.name }}"
+
+        - name: Create certificate signing request (CSR) for self-signed certificate
+          when: "item.item.enable_www_prefix == false and item.stat is defined and item.stat.exists == false"
+          community.crypto.openssl_csr_pipe:
+            privatekey_path: "/etc/httpd/certs/{{ item.item.name }}/{{ item.item.name }}.key"
+            common_name: "{{ item.item.name }}"
+            organization_name: "Example Issuer"
+            state_or_province_name: "PL"
+          register: csr
+          loop: "{{ cert_existence.results }}"
+          loop_control:
+            label: "{{ item.item.name }}"
+
+        - name: Generate a self-signed SSL/TLS certificate (valid for 10 years)
+          when: "item.item.item.enable_www_prefix == false and item.csr is defined"
+          community.crypto.x509_certificate:
+            path: "/etc/httpd/certs/{{ item.item.item.name }}/{{ item.item.item.name }}.crt"
+            privatekey_path: "/etc/httpd/certs/{{ item.item.item.name }}/{{ item.item.item.name }}.key"
+            csr_content: "{{ item.csr }}"
+            provider: selfsigned
+            selfsigned_not_after: "+3650d"
+            mode: 0644
+          loop: "{{ csr.results }}"
+          loop_control:
+            label: "{{ item.item.item.name }}"

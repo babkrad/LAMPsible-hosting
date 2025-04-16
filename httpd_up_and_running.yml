@@ -1,0 +1,9 @@
+---
+- hosts: dev-www01
+  become: True
+  gather_facts: true
+
+  tasks:
+  - name: Deploy Apache Server Config
+    include_role:
+      name: build_apache

@@ -1,0 +1,38 @@
+---
+#tasks for providing unprivileged accounts for website maintainers like agency etc.
+- name: Add maintainer group into system
+  loop: "{{ maintainers }}"
+  ansible.builtin.group:
+    name: "{{ item.name }}"
+    state: present
+    gid: "{{ item.mt_gid }}"
+
+- name: Add the SFTP user for sites
+  loop: "{{ maintainers }}"
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    password: "{{ lookup('ansible.builtin.password', '/tmp/www_dmz/{{ item.name }}_sshpass', chars=['ascii_letters', 'digits'], length=28) | password_hash('sha512') }}"
+    group: "{{ item.name }}"
+    uid: "{{ item.mt_uid }}"
+    update_password: on_create
+    create_home: yes
+    shell: /bin/bash
+
+- name: Add maintainer user to very limited sudoers
+  loop: "{{ maintainers }}"
+  ansible.builtin.template:
+    src: templates/sudoers_d.j2
+    dest: "/etc/sudoers.d/{{ item.name }}"
+    mode: '0644'
+    owner: root
+    group: root
+
+- name: Create backups directory if needed to attach NFS share to it
+  loop: "{{ maintainers }}"
+  when: "{{ item.bkp_dir }} == True"
+  ansible.builtin.file:
+    path: "/home/{{ item.name }}/backups"
+    state: directory
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+    mode: 0750

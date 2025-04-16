@@ -1,0 +1,28 @@
+; Default pool named 'www'
+; DO NOT MODIFY THIS CONFIG
+[www]
+
+user = apache
+group = apache
+
+listen = /var/run/php-fpm-{{ item }}-www.sock
+listen.acl_users = apache
+listen.allowed_clients = 127.0.0.1
+
+pm = static
+pm.max_children = 2
+pm.max_requests = 100
+
+pm.status_path = /php-fpm-status
+ping.path = /php-fpm-ping
+
+slowlog = /var/opt/remi/php{{ item }}/log/php-fpm/www-slow.log
+request_slowlog_timeout = 60s
+request_terminate_timeout = 90s
+
+php_admin_value[error_log] = /var/log/php-fpm{{ item }}/www-error.log
+php_admin_flag[log_errors] = on
+
+php_value[session.save_handler] = files
+php_value[session.save_path]    = /var/opt/remi/php{{ item }}/lib/php/session
+php_value[soap.wsdl_cache_dir]  = /var/opt/remi/php{{ item }}/lib/php/wsdlcache

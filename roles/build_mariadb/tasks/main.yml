@@ -1,0 +1,49 @@
+---
+- name: Re-enable base repositories
+  when: ansible_distribution == 'OracleLinux' and ansible_distribution_major_version == '9'
+  changed_when: false
+  ansible.builtin.shell:
+    cmd: dnf config-manager --enable ol9_appstream ol9_baseos_latest ol9_addons
+
+- name: Add EPEL for Oracle Linux EL 9
+  when: ansible_distribution == 'OracleLinux' and ansible_distribution_major_version == '9'
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+
+- name: Install necessary packages
+  notify: enable mariadb
+  ansible.builtin.dnf:
+    name:
+    - chrony
+    - mariadb-server
+    - python3-PyMySQL
+    - python3-mysqlclient
+    - rsync
+    - nfs-utils
+    state: present
+
+- name: set Europe/Warsaw timezone
+  ansible.builtin.shell:
+    cmd: timedatectl set-timezone Europe/Warsaw
+
+- name: deploy chrony.conf template
+  notify: enable chronyd
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+
+- name: add firewalld rules to allow Apache MySQL connections
+  ansible.posix.firewalld:
+    zone: public
+    rich_rule: 'rule family="ipv4" source address="{{ apache_host_addr }}" port protocol="tcp" port="3306" accept'
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: post-installation clean yum cache freeing var disk space
+  shell: dnf clean all

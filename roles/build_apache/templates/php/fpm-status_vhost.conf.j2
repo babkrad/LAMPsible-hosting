@@ -1,0 +1,15 @@
+SetEnv dolog 0
+
+<LocationMatch "/statfpm{{ item }}">
+    Require ip 127.0.0.1
+    ProxyPass "unix:/var/run/php-fpm-{{ item }}-www.sock|fcgi://localhost/statfpm{{ item }}"
+    SetEnv dolog 1
+</LocationMatch>
+
+<LocationMatch "/pingfpm{{ item }}">
+    Require ip 127.0.0.1
+    ProxyPass "unix:/var/run/php-fpm-{{ item }}-www.sock|fcgi://localhost/pingfpm{{ item }}"
+    SetEnv dolog 1
+</LocationMatch>
+
+CustomLog logs/access_log common env=dolog

@@ -1,0 +1,75 @@
+- name: Import remi PHP repos GPG key.
+  rpm_key:
+    key: https://rpms.remirepo.net/enterprise/9/RPM-GPG-KEY-remi
+    state: present
+
+- name: Add remi PHP repository
+  ansible.builtin.dnf:
+    name:
+    - "https://rpms.remirepo.net/enterprise/remi-release-9.rpm"
+    state: present
+
+- name: Install PHP8.1 with modules
+  with_items: "{{ php81_with_mod }}"
+  ansible.builtin.dnf:
+    name:
+      - "{{ item }}"
+    state: present
+
+- name: Install PHP8.2 with modules
+  with_items: "{{ php82_with_mod }}"
+  ansible.builtin.dnf:
+    name:
+      - "{{ item }}"
+    state: present
+
+- name: Make symbolic link to php-fpm for admins
+  with_items: "{{ php_used_versions }}"
+  ansible.builtin.file:
+    src: "/opt/remi/php{{ item }}/root/usr/sbin/php-fpm"
+    dest: "/usr/bin/php{{ item }}-php-fpm"
+    owner: root
+    group: root
+    state: link
+
+- name: adjust php.ini performance
+  with_items: "{{ php_used_versions }}"
+  ansible.builtin.template:
+    src: templates/php/php.ini.j2
+    dest: "/etc/opt/remi/php{{ item }}/php.ini"
+
+- name: adjust opcache.ini performance
+  with_items: "{{ php_used_versions }}"
+  ansible.builtin.template:
+    src: templates/php/10-opcache.ini.j2
+    dest: "/etc/opt/remi/php{{ item }}/php.d/10-opcache.ini"
+
+- name: adjust php-fpm.conf performance
+  with_items: "{{ php_used_versions }}"
+  notify: enable fpm
+  ansible.builtin.template:
+    src: templates/php/php-fpm.conf.j2
+    dest: "/etc/opt/remi/php{{ item }}/php-fpm.conf"
+
+- name: deploy default www.conf for php-fpm where service status is
+  with_items: "{{ php_used_versions }}"
+  notify: reload fpm
+  ansible.builtin.template:
+    src: templates/php/default_fpm_pool.conf.j2
+    dest: "/etc/opt/remi/php{{ item }}/php-fpm.d/www.conf"
+
+- name: Creates a cron reload php-fpm services
+  ansible.builtin.cron:
+    name: reload php-fpm services
+    minute: "50"
+    hour: "5"
+    user: root
+    job: "systemctl reload php81-php-fpm; systemctl reload php82-php-fpm"
+
+- name: Creates a cron clean php-fpm logs
+  ansible.builtin.cron:
+    name: clean php-fpm logs
+    minute: "45"
+    hour: "5"
+    user: root
+    job: "find /var/log/php-fpm/* -type f -mtime +8 -delete"

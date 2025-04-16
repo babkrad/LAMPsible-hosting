@@ -1,0 +1,4 @@
+- include_tasks: vhosts.yml
+  when: ansible_host is match("^192\.168\.2\.")
+- include_tasks: database.yml
+  when: ansible_host is match("^192\.168\.1\.")

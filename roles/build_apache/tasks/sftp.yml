@@ -1,0 +1,35 @@
+- name: Comment out an old unsupported sftp-server service in sshd_config
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "/usr/libexec/openssh/sftp-server"
+    line: "#Subsystem sftp /usr/libexec/openssh/sftp-server"
+
+- name: Add sftp module to pam.d
+  ansible.builtin.blockinfile:
+    path: /etc/pam.d/sshd
+    block: |
+      session    required     pam_chroot.so
+
+- name: Add sftp chrooted config in sshd_config
+  notify: restart sshd
+  ansible.builtin.blockinfile:
+    path: /etc/ssh/sshd_config
+    block: |
+      Subsystem sftp internal-sftp
+      Match group sftp
+      ChrootDirectory %h
+      ForceCommand internal-sftp
+      AllowTcpForwarding no
+
+- name: Add sftp group into system
+  ansible.builtin.group:
+    name: sftp
+    state: present
+    gid: 10000
+
+- name: Add the SFTP user to access webfiles
+  ansible.builtin.user:
+    name: apache
+    groups: sftp
+    append: yes
+

@@ -1,0 +1,6 @@
+---
+maintainers:
+  - name: external_maintainer
+    mt_uid: 9000
+    mt_gid: 9000
+    bkp_dir: True

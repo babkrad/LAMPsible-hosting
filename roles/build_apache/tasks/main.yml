@@ -1,0 +1,8 @@
+---
+- include_tasks: os_setup.yml
+- include_tasks: sftp.yml
+- include_tasks: httpd.yml
+- include_tasks: php.yml
+
+- name: post-installation clean yum cache freeing var disk space
+  shell: dnf clean all

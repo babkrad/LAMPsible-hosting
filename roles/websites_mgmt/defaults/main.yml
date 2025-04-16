@@ -1,0 +1,50 @@
+---
+# defaults file for websites_mgmt
+access_list_url: "https://repo.example.com/ip_addresses.txt"
+php_low_demand: "
+pm = dynamic \n
+pm.max_children = 10 \n
+pm.start_servers = 5 \n
+pm.min_spare_servers = 5 \n
+pm.max_spare_servers = 10 \n
+php_admin_value[memory_limit] = 512M \n
+php_admin_value[post_max_size] = 512M \n
+php_admin_value[upload_max_filesize] = 256M \n
+php_admin_value[disable_functions] = chgrp,disk_free_space,disk_total_space,diskfreespace,pcntl_alarm,pcntl_fork,pcntl_waitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,timedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority,exec,passthru,shell_exec,system,proc_open,popen,posix_uname,setproctitle,setthreadtitle,shmop_close,shmop_delete,shmop_open,shmop_read,shmop_size,shmop_write,posix_getpwuid,posix_getrlimit,posix_getsid,posix_getuid,posix_initgroups,posix_isatty,posix_kill,posix_mkfifo,posix_mknod,posix_setegid,posix_seteuid,posix_setgid,posix_setpgid,posix_setsid,posix_setuid,get_current_user,getmygid,getmyinode,getmypid,getmyuid,virtual,chroot,exec,passthru,proc_close,proc_nice,proc_open,proc_terminate,shell_exec,lchgrp,lchown,link,linkinfo,lstat,pclose,popen,umask,cli_get_process_title,cli_set_process_title \n
+" ## When edit this values please keep "\n" at the end of line.
+php_high_demand: "
+pm = dynamic \n
+pm.max_children = 20 \n
+pm.start_servers = 10 \n
+pm.min_spare_servers = 10 \n
+pm.max_spare_servers = 20 \n
+php_admin_value[memory_limit] = 768M \n
+php_admin_value[post_max_size] = 768M \n
+php_admin_value[upload_max_filesize] = 256M \n
+php_admin_value[disable_functions] = chgrp,disk_free_space,disk_total_space,diskfreespace,pcntl_alarm,pcntl_fork,pcntl_waitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,timedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority,exec,passthru,shell_exec,system,proc_open,popen \n
+" ## When edit this values please keep "\n" at the end of line.
+php_ultra_demand: "
+pm = dynamic \n
+pm.max_children = 30 \n
+pm.start_servers = 15 \n
+pm.min_spare_servers = 15 \n
+pm.max_spare_servers = 30 \n
+php_admin_value[memory_limit] = 1024M \n
+php_admin_value[post_max_size] = 1024M \n
+php_admin_value[upload_max_filesize] = 512M \n
+php_admin_value[disable_functions] = chgrp,disk_free_space,disk_total_space,diskfreespace,pcntl_alarm,pcntl_fork,pcntl_waitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,timedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority,exec,passthru,shell_exec,system,proc_open,popen \n
+" ## When edit this values please keep "\n" at the end of line.
+php_special_demand: "
+pm = static \n
+pm.max_children = 50 \n
+php_admin_value[memory_limit] = 1024M \n
+php_admin_value[post_max_size] = 1024M \n
+php_admin_value[upload_max_filesize] = 512M \n
+php_admin_value[opcache.enable] = 1 \n
+php_admin_value[opcache.memory_consumption] = 256 \n
+php_admin_value[opcache.max_accelerated_files] = 14000 \n
+php_admin_value[opcache.interned_strings_buffer] = 16 \n
+php_admin_value[disable_functions] = chgrp,disk_free_space,disk_total_space,diskfreespace,pcntl_alarm,pcntl_fork,pcntl_waitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,timedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority,exec,passthru,shell_exec,system,proc_open,popen \n
+" ## When edit this values please keep "\n" at the end of line.
+php_max_requests : "pm.max_requests = 300 \n" ## When edit this value please keep "\n" at the end of line.
+new_user_password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits'], length=28) }}"

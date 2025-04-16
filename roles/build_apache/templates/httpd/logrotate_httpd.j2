@@ -1,0 +1,17 @@
+/var/log/httpd/*log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    sharedscripts
+    copytruncate
+    dateext
+    dateformat -%Y%m%d
+    create 0640 root root
+
+    postrotate
+        /usr/sbin/apachectl graceful > /dev/null 2>/dev/null || true
+    endscript
+}

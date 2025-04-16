@@ -1,0 +1,9 @@
+---
+- hosts: dev-www01
+  become: True
+
+  tasks:
+    - name: Patch ACLs by updating Apache vHost files
+      include_role:
+        name: websites_mgmt
+        tasks_from: update_vhosts_acl

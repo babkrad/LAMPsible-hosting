@@ -1,0 +1,37 @@
+---
+- name: block for preparation of up to date acl whitelist
+  delegate_to: localhost
+  block:
+  - name: Download the list of IP addresses from URL
+    ignore_errors: true
+    ansible.builtin.uri:
+      url: "{{ access_list_url }}"
+      return_content: yes
+    register: ip_list_raw
+
+  - name: Split the IP list into a list of IPs
+    ignore_errors: true
+    set_fact:
+      ip_list: "{{ ip_list_raw.content.splitlines() }}"
+
+  - name: Format IP addresses into a comma-separated line
+    ignore_errors: true
+    set_fact:
+      access_list: "{{ ip_list | join(' ') }}"
+
+- name: Create VirtualHosts
+  block:
+    - name: Create or modify VirtualHost for {{ groups_name[0] }}
+      loop: "{{ sites_enabled }}"
+      notify: "reload httpd service"
+      template:
+        src: 'templates/vhosts.conf.j2'
+        dest: '/etc/httpd/sites-available/{{ item.name }}.conf'
+
+    - name: Create symlinks for {{ groups_name }}
+      loop: "{{ sites_enabled }}"
+      file:
+          src: "/etc/httpd/sites-available/{{ item.name }}.conf"
+          dest: "/etc/httpd/sites-enabled/{{ item.name }}.conf"
+          state: link
+          force: yes

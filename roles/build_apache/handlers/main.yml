@@ -1,0 +1,43 @@
+---
+# handlers file for build_webcluster
+- name: enable Apache HTTPD service
+  ansible.builtin.systemd:
+    name: httpd
+    enabled: yes
+    state: started
+    masked: no
+  listen: "enable httpd"
+
+- name: reload httpd
+  ansible.builtin.systemd:
+    name: httpd
+    state: reloaded
+  listen: "reload httpd"
+
+- name: enable fpm
+  with_items: "{{ php_used_versions }}"
+  ansible.builtin.systemd:
+    name: "php{{ item }}-php-fpm.service"
+    enabled: yes
+    state: started
+    masked: no
+  listen: "enable fpm"
+
+- name: reload fpm
+  with_items: "{{ php_used_versions }}"
+  ansible.builtin.systemd:
+    name: "php{{ item }}-php-fpm.service"
+    state: reloaded
+  listen: "reload fpm"
+
+- name: restart sshd
+  ansible.builtin.service:
+    name: sshd
+    state: restarted
+  listen: "restart sshd"
+
+- name: restart chronyd
+  ansible.builtin.service:
+    name: sshd
+    state: restarted
+  listen: "restart chronyd"

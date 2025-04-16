@@ -1,0 +1,19 @@
+---
+# handlers file for websites_mgmt
+- name: reload fpm81
+  ansible.builtin.service:
+    name: "php81-php-fpm.service"
+    state: reloaded
+  listen: "reload PHP81 service"
+
+- name: reload fpm82
+  ansible.builtin.service:
+    name: "php82-php-fpm.service"
+    state: reloaded
+  listen: "reload PHP82 service"
+
+- name: reload httpd
+  ansible.builtin.service:
+    name: "httpd.service"
+    state: reloaded
+  listen: "reload httpd service"

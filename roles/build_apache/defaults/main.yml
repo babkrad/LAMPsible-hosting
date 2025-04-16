@@ -1,0 +1,59 @@
+---
+# defaults file for build_apache
+php_used_versions:
+  - 81
+  - 82
+php81_with_mod:
+  - php81-syspaths
+  - php81-php-gd
+  - php81-php-fpm
+  - php81-php-opcache
+  - php81-php-pecl-mysql
+  - php81-php-mysqlnd
+  - php81-php-imap
+  - php81-php-mbstring
+  - php81-php-pecl-http
+  - php81-php-pecl-imagick
+  - php81-php-pecl-zip
+  - php81-php-pecl-mcrypt
+  - php81-php-pecl-xmldiff
+  - php81-php-pecl-xattr
+  - php81-php-zstd
+  - php81-php-xz
+  - php81-php-soap
+  - php81-php-dba
+  - php81-php-ioncube-loader
+  - php81-php-pecl-redis6
+  - php81-php-phpiredis
+php82_with_mod:
+  - php82-php-gd
+  - php82-php-fpm
+  - php82-php-opcache
+  - php82-php-pecl-mysql
+  - php82-php-mysqlnd
+  - php82-php-imap
+  - php82-php-mbstring
+  - php82-php-pecl-http
+  - php82-php-pecl-imagick
+  - php82-php-pecl-zip
+  - php82-php-pecl-mcrypt
+  - php82-php-pecl-xmldiff
+  - php82-php-pecl-xattr
+  - php82-php-zstd
+  - php82-php-xz
+  - php82-php-soap
+  - php82-php-dba
+  - php82-php-ioncube-loader
+  - php82-php-pecl-redis6
+  - php82-php-phpiredis
+hosting_libs:
+  - nfs-utils
+  - postfix
+  - ghostscript
+  - fcgi
+  - mod_fcgid
+  - mod_ssl
+  - mod_http2
+  - python3-cryptography
+  - lynx
+  - rsync

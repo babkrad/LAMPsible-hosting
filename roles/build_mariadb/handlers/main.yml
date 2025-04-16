@@ -1,0 +1,16 @@
+---
+- name: enable MariaDB service
+  ansible.builtin.systemd:
+    name: mariadb
+    enabled: yes
+    state: started
+    masked: no
+  listen: "enable mariadb"
+
+- name: enable chronyd service
+  ansible.builtin.systemd:
+    name: chronyd
+    enabled: yes
+    state: restarted
+    masked: no
+  listen: "enable chronyd"

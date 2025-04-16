@@ -1,0 +1,53 @@
+---
+- name: Create webroot directories per vHost
+  block:
+    - name: "Make website directory and set permissions for {{ group_name }}"
+      with_items:
+        - "{{ sites_enabled }}"
+      ansible.builtin.file:
+        path: /var/www/html/{{ item.name }}
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: "Make website public_html directory and set permissions for {{ group_name }}"
+      with_items:
+        - "{{ sites_enabled }}"
+      ansible.builtin.file:
+        path: /var/www/html/{{ item.name }}/public_html
+        state: directory
+        owner: apache
+        group: sftp
+        mode: 0775
+
+    - name: Create temporary upload subdirectory in sites public_html
+      when: item.php != 'nonphp'
+      with_items:
+        - "{{ sites_enabled }}"
+      ansible.builtin.file:
+        path: /var/www/html/{{ item.name }}/public_html/wp-content/uploads
+        state: directory
+        owner: apache
+        group: sftp
+        mode: 0775
+
+    - name: "Set ACL permissions for Apache user on website public_html for {{ group_name }}"
+      ignore_errors: true
+      with_items:
+        - "{{ sites_enabled }}"
+      acl:
+        path: /var/www/html/{{ item.name }}/public_html
+        entry: default:user:apache:rwx
+        state: present
+        recursive: true
+
+    - name: "Set ACL permissions for Website user by SFTP group on website public_html for {{ group_name }}"
+      ignore_errors: true
+      with_items:
+        - "{{ sites_enabled }}"
+      acl:
+        path: /var/www/html/{{ item.name }}/public_html
+        entry: default:group:sftp:rwx
+        state: present
+        recursive: true

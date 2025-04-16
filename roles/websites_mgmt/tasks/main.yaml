@@ -1,0 +1,12 @@
+- include_tasks: vhosts.yaml
+  when: ansible_host is match("^192\.168\.2\.")
+- include_tasks: mk_siteuser.yaml
+  when: ansible_host is match("^192\.168\.2\.")
+- include_tasks: perm_on_dirs.yaml
+  when: ansible_host is match("^192\.168\.2\.")
+- include_tasks: cert_gen.yaml
+  when: ansible_host is match("^192\.168\.2\.")
+- include_tasks: chrooted_fpm.yaml
+  when: ansible_host is match("^192\.168\.2\.")
+- include_tasks: mksitedb.yaml
+  when: ansible_host is match("^192\.168\.1\.")

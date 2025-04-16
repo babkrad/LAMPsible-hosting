@@ -1,0 +1,9 @@
+---
+- hosts: dev-dbs01
+  become: True
+  gather_facts: true
+
+  tasks:
+  - name: Install and configure mariadb servers
+    include_role:
+      name: build_mariadb

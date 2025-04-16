@@ -1,0 +1,106 @@
+- name: Repositories maintenance on Oracle Linux
+  when: ansible_distribution == 'OracleLinux' and ansible_distribution_major_version == '9'
+  block:
+    - name: Re-enable base repositories
+      changed_when: false
+      ansible.builtin.shell:
+        cmd: dnf config-manager --enable ol9_appstream ol9_baseos_latest ol9_addons
+
+    - name: Add and EPEL for Oracle Linux
+      ansible.builtin.dnf:
+        name:
+        - epel-release
+        state: present
+
+- name: Add EPEL for RedHat Linux
+  when: ansible_distribution == 'RedHat' and ansible_distribution_major_version == '9'
+  block:
+    - name: enable CRB repo
+      ansible.builtin.shell:
+        cmd: subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
+
+    - name: Install EPEL
+      ansible.builtin.dnf:
+        name:
+        - "https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm"
+        state: present
+
+- name: Install necessary packages
+  ansible.builtin.dnf:
+    name:
+    - chrony
+    - gawk
+    - lsof
+    - jq
+    - bc
+    state: present
+
+- name: System File limits settings
+  block:
+  - name: Set max files in systemd config
+    ansible.builtin.lineinfile:
+      path: /etc/systemd/system.conf
+      regexp: "#DefaultLimitNOFILE="
+      line: DefaultLimitNOFILE=4096:524288
+
+  - name: Set max files limits in security
+    ansible.builtin.blockinfile:
+      path: /etc/security/limits.conf
+      insertbefore: "# End of file"
+      marker: "### {mark} ANSIBLE MANAGED BLOCK ###"
+      block: |
+        *         hard    nofile      524288
+        *         soft    nofile      524288
+        root      hard    nofile      524288
+        root      soft    nofile      524288
+
+  - name: Put file-max file in sysctl.d
+    ansible.builtin.template:
+      src: templates/os/10-file-max.conf.j2
+      dest: /etc/sysctl.d/10-file-max.conf
+
+  - name: Put server tunig in sysctl.d
+    ansible.builtin.template:
+      src: templates/os/os-tune.conf.j2
+      dest: /etc/sysctl.d/99-server-os-tune.conf
+
+- name: Deploy hosts file with proper IP mappings in DNS
+  ansible.builtin.template:
+    src: templates/os/hosts.j2
+    dest: /etc/hosts
+
+- name: set Europe/Warsaw timezone
+  ansible.builtin.shell:
+    cmd: timedatectl set-timezone Europe/Warsaw
+
+- name: deploy chrony.conf template
+  notify: restart chronyd
+  ansible.builtin.template:
+    src: templates/os/chrony.conf.j2
+    dest: /etc/chrony.conf
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+
+- name: Create directory for admins scripts logs
+  ansible.builtin.file:
+    path: /opt/adm_scripts
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Create directory for admins scripts logs
+  ansible.builtin.file:
+    path: /var/log/adm_scripts
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Copy server admins scripts
+  ansible.builtin.copy:
+    src: files/adm_scripts/
+    dest: /opt/adm_scripts/
+

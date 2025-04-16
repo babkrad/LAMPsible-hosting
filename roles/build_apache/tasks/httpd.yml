@@ -1,0 +1,87 @@
+- name: install libraries for web hosting
+  with_items: "{{ hosting_libs }}"
+  ansible.builtin.dnf:
+    name: "{{ item }}"
+    state: present
+
+- name: Create site-available directory
+  ansible.builtin.file:
+    path: /etc/httpd/sites-available/
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Create site-enabled directory
+  ansible.builtin.file:
+    path: /etc/httpd/sites-enabled/
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: copy Apache httpd config
+  notify: enable httpd
+  ansible.builtin.template:
+    src: templates/httpd/httpd.conf.j2
+    dest: /etc/httpd/conf/httpd.conf
+
+- name: copy Apache httpd autoindexing config
+  notify: enable httpd
+  ansible.builtin.template:
+    src: templates/httpd/autoindex.conf.j2
+    dest: /etc/httpd/conf.d/autoindex.conf
+
+- name: copy Apache httpd server-status for monitoring
+  notify: enable httpd
+  ansible.builtin.template:
+    src: templates/httpd/server-status.conf.j2
+    dest: /etc/httpd/conf.d/server-status.conf
+
+- name: copy logrotate config for Apache
+  ansible.builtin.template:
+    src: templates/httpd/logrotate_httpd.j2
+    dest: /etc/logrotate.d/httpd
+
+- name: add firewalld rules to make Apache work
+  with_items:
+    - 80
+    - 443
+  ansible.posix.firewalld:
+    port: "{{ item }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: Creates a cron reload httpd gracefully using script
+  ansible.builtin.cron:
+    name: reload httpd gracefully
+    minute: "0"
+    hour: "6"
+    user: root
+    job: "/bin/bash /opt/adm_scripts/httpd_graceful.sh"
+
+- name: Creates a cron which fixes wrong permissions in public_html
+  ansible.builtin.cron:
+    name: reclaim file permissions
+    minute: "45"
+    hour: "6"
+    weekday: "1"
+    user: root
+    job: "/bin/bash /opt/adm_scripts/fix_perm.sh"
+
+- name: Creates a cron clean httpd logs
+  ansible.builtin.cron:
+    name: clean httpd logs
+    minute: "55"
+    hour: "5"
+    user: root
+    job: "find /var/log/httpd -type f -mtime +8 -delete"
+
+- name: Creates a cron that reclaims logs disk space by restarting rsyslog
+  ansible.builtin.cron:
+    name: restart rsyslog service
+    minute: "30"
+    hour: "5"
+    user: root
+    job: "systemctl restart rsyslog"

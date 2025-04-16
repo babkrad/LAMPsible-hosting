@@ -1,0 +1,29 @@
+- name: prepare user password keypair
+  block:
+  - name: Initialize user-password mapping
+    set_fact:
+      user_password_map: {}
+
+  - name: Pair user with password using mapping method
+    loop: "{{ sites_enabled }}"
+    loop_control:
+      label: "{{ site_user }}"
+    set_fact:
+      user_password_map: >-
+        {{
+          user_password_map | combine({ site_user: new_user_password })
+        }}
+
+- name: Add the SFTP user for sites
+  register: local_sftp_account_created
+  loop: "{{ sites_enabled }}"
+  loop_control:
+    label: "{{ site_user }}"
+  ansible.builtin.user:
+    name: "{{ site_user }}"
+    password: "{{ user_password_map[ site_user ] | password_hash('sha512') }}"
+    groups: sftp
+    append: true
+    shell: /sbin/nologin
+    home: "/var/www/html/{{ item.name }}"
+    skeleton: false

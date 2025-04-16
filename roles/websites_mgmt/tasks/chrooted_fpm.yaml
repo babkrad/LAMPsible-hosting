@@ -1,0 +1,51 @@
+- name: PHP-FPM config and logs directory
+  when: "item.fpm_resources is not false"
+  block:
+    - name: Create php-fpm log directory
+      when: item.php != 'nonphp'
+      loop: "{{ sites_enabled }}"
+      ansible.builtin.file:
+        path: /var/log/php-fpm/{{ item.name }}
+        state: directory
+        owner: root
+        group: root
+        mode: 0700
+
+    - name: "Find all PHP-FPM pool configuration files under /etc/opt/remi"
+      register: existing_pool_files
+      ansible.builtin.find:
+        paths: "/etc/opt/remi"
+        patterns: "*.conf"
+        recurse: yes
+
+    - name: "Remove outdated PHP-FPM pool configuration files for each site"
+      loop: "{{ existing_pool_files.files }}"
+      loop_control:
+        label: "{{ item.path }}"
+      vars:
+        # Extract the PHP version from each found file's path (e.g., php81 or php82)
+        found_php_version: "{{ item.path | regex_replace('^.*php(\\d{2}).*$', '\\1') }}"
+        # Extract the site name from the file path by removing the `.conf` extension
+        site_name_from_file: "{{ item.path | basename | regex_replace('\\.conf$', '') }}"
+        # Find the corresponding site in sites_enabled based on the name
+        target_php_version: "{{ (sites_enabled | selectattr('name', 'equalto', site_name_from_file) | map(attribute='php') | first) | default(None) }}"
+      when:
+        - found_php_version is defined
+        - target_php_version is not none
+        - found_php_version != target_php_version  # Only remove the file if the PHP version differs
+        - not item.path.endswith('php-fpm.conf')  # Exclude the general php-fpm.conf
+        - not item.path.endswith('www.conf')  # Exclude the general www.conf
+      notify: "reload PHP{{ found_php_version }} service"
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+
+    - meta: flush_handlers
+
+    - name: Make new or reconfig fpm pool
+      when: item.php != 'nonphp'
+      notify: "reload PHP{{ item.php }} service"
+      loop: "{{ sites_enabled }}"
+      ansible.builtin.template:
+        src: 'templates/fpm_pool.conf.j2'
+        dest: '/etc/opt/remi/php{{ item.php }}/php-fpm.d/{{ item.name }}.conf'
